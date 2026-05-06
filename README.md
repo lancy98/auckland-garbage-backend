@@ -1,0 +1,193 @@
+# Auckland Garbage Collection Backend
+
+Firebase Cloud Functions backend for looking up Auckland Council property records and rubbish, recycling, and food scraps collection dates.
+
+The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. Both functions enforce Firebase App Check.
+
+## Features
+
+- Search Auckland Council property records by address or query text.
+- Fetch upcoming collection dates for a specific Auckland Council property ID.
+- Parse collection results into a small, client-friendly JSON shape.
+- TypeScript-based Firebase Functions project with linting and build checks.
+
+## Tech Stack
+
+- Firebase Cloud Functions
+- Firebase Admin SDK
+- Firebase Functions SDK
+- TypeScript
+- Cheerio for parsing Auckland Council collection-day pages
+
+## Project Structure
+
+```text
+.
+├── firebase.json
+└── functions
+    ├── package.json
+    ├── src
+    │   ├── getAucklandBinDates.ts
+    │   ├── index.ts
+    │   └── searchProperty.ts
+    └── tsconfig.json
+```
+
+## Functions
+
+### `searchProperty`
+
+Searches Auckland Council property records.
+
+Callable payload:
+
+```json
+{
+  "query": "1 Queen Street"
+}
+```
+
+The function forwards the search to Auckland Council's property API and returns the JSON response.
+
+### `getAucklandBinDates`
+
+Fetches and parses rubbish, recycling, and food scraps collection dates for a property.
+
+Callable payload:
+
+```json
+{
+  "propertyId": "123456789"
+}
+```
+
+Example response shape:
+
+```json
+{
+  "propertyId": "123456789",
+  "url": "https://experience.aucklandcouncil.govt.nz/rubbish-recycling-collection-days/123456789.html",
+  "collections": [
+    {
+      "type": "rubbish",
+      "dateText": "Monday, 12 May",
+      "date": "2026-05-12"
+    }
+  ]
+}
+```
+
+Collection `type` values are:
+
+- `rubbish`
+- `recycling`
+- `foodScraps`
+
+## Requirements
+
+- Node.js 24, matching the Firebase Functions runtime configured in `functions/package.json`
+- npm
+- Firebase CLI
+- Access to a Firebase project with Cloud Functions enabled
+
+Install the Firebase CLI if needed:
+
+```sh
+npm install -g firebase-tools
+```
+
+## Setup
+
+Install dependencies:
+
+```sh
+cd functions
+npm install
+```
+
+Log in to Firebase:
+
+```sh
+firebase login
+```
+
+Select or verify the Firebase project:
+
+```sh
+firebase use
+```
+
+## Development
+
+Run linting:
+
+```sh
+cd functions
+npm run lint
+```
+
+Build the TypeScript source:
+
+```sh
+cd functions
+npm run build
+```
+
+Start the Firebase Functions emulator:
+
+```sh
+cd functions
+npm run serve
+```
+
+Open the Firebase Functions shell:
+
+```sh
+cd functions
+npm run shell
+```
+
+## Deployment
+
+Deploy only the Cloud Functions:
+
+```sh
+cd functions
+npm run deploy
+```
+
+View function logs:
+
+```sh
+cd functions
+npm run logs
+```
+
+The root `firebase.json` runs linting and TypeScript compilation before deployment.
+
+## App Check
+
+App Check must be configured in the client application because both functions are deployed with `enforceAppCheck: true`.
+
+## Error Handling
+
+The functions return Firebase `HttpsError` responses for invalid input and upstream service failures.
+
+Common error codes:
+
+- `invalid-argument`: missing or invalid request data
+- `unavailable`: Auckland Council upstream request failed
+- `internal`: unexpected server-side failure
+
+## External Dependency
+
+This backend depends on public Auckland Council endpoints under:
+
+- `https://experience.aucklandcouncil.govt.nz/nextapi/property`
+- `https://experience.aucklandcouncil.govt.nz/rubbish-recycling-collection-days/{propertyId}.html`
+
+Changes to Auckland Council's API responses or page markup may require parser updates.
+
+## License
+
+This project is licensed under a custom BSD-style license. See [LICENSE.md](LICENSE.md) for details.
