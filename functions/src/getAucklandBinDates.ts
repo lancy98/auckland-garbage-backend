@@ -7,7 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onRequest} from "firebase-functions/https";
+import {HttpsError, onCall} from "firebase-functions/https";
 import * as cheerio from "cheerio";
 
 type BinType = "rubbish" | "recycling" | "foodScraps";
@@ -164,50 +164,48 @@ export const parseAucklandBinDates = (html: string): BinDate[] => {
   return collections;
 };
 
-export const getAucklandBinDates = onRequest(async (req, res) => {
-  try {
-    const propertyId = req.query.propertyId as string;
+export const getAucklandBinDates = onCall(
+  {
+    enforceAppCheck: true,
+  },
+  async (request) => {
+    const propertyId = request.data?.propertyId as string | undefined;
 
     if (!propertyId || !/^\d+$/.test(propertyId)) {
-      res.status(400).json({
-        error: "Valid propertyId is required",
-      });
-      return;
+      throw new HttpsError("invalid-argument", "Valid propertyId is required");
     }
 
-    const url =
-      "https://experience.aucklandcouncil.govt.nz/" +
-      `rubbish-recycling-collection-days/${propertyId}.html`;
+    try {
+      const url =
+        "https://experience.aucklandcouncil.govt.nz/" +
+        `rubbish-recycling-collection-days/${propertyId}.html`;
 
-    const pageResponse = await fetch(url);
+      const pageResponse = await fetch(url);
 
-    if (!pageResponse.ok) {
-      res.status(pageResponse.status).json({
-        error: "Failed to fetch Auckland bin dates",
-      });
-      return;
+      if (!pageResponse.ok) {
+        throw new HttpsError(
+          "unavailable",
+          "Failed to fetch Auckland bin dates",
+          {status: pageResponse.status},
+        );
+      }
+
+      const html = await pageResponse.text();
+      const collections = parseAucklandBinDates(html);
+
+      return {
+        propertyId,
+        url,
+        collections,
+      };
+    } catch (error: unknown) {
+      console.error(error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Unable to fetch Auckland bin dates");
     }
-
-    const html = await pageResponse.text();
-    const collections = parseAucklandBinDates(html);
-
-    res.set("Cache-Control", "public, max-age=10800, s-maxage=10800");
-
-    res.json({
-      propertyId,
-      url,
-      collections,
-    });
-  } catch (error: unknown) {
-    console.error(error);
-
-    const message =
-      error instanceof Error ?
-        error.message :
-        "Unable to fetch Auckland bin dates";
-
-    res.status(500).json({
-      error: message,
-    });
-  }
-});
+  },
+);
