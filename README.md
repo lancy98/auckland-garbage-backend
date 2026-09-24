@@ -2,7 +2,7 @@
 
 Firebase Cloud Functions backend for looking up Auckland Council property records and rubbish, recycling, and food scraps collection dates.
 
-The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. Both functions enforce Firebase App Check.
+The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. `getAucklandBinDates` enforces Firebase App Check; `searchProperty` does not.
 
 ## Features
 
@@ -47,7 +47,9 @@ Callable payload:
 }
 ```
 
-The function forwards the search to Auckland Council's property API and returns the JSON response.
+The function obtains a search session from Auckland Council's collection-day
+page, then calls the property API with that session and returns its JSON
+response.
 
 ### `getAucklandBinDates`
 
@@ -126,6 +128,13 @@ cd functions
 npm run lint
 ```
 
+Run the callable tests:
+
+```sh
+cd functions
+npm test
+```
+
 Build the TypeScript source:
 
 ```sh
@@ -167,7 +176,7 @@ The root `firebase.json` runs linting and TypeScript compilation before deployme
 
 ## App Check
 
-App Check must be configured in the client application because both functions are deployed with `enforceAppCheck: true`.
+App Check must be configured in the client application to call `getAucklandBinDates`, which is deployed with `enforceAppCheck: true`. `searchProperty` can be called without an App Check token.
 
 ## Error Handling
 
@@ -183,6 +192,7 @@ Common error codes:
 
 This backend depends on public Auckland Council endpoints under:
 
+- `https://experience.aucklandcouncil.govt.nz/rubbish-recycling-collection-days.html`
 - `https://experience.aucklandcouncil.govt.nz/nextapi/property`
 - `https://experience.aucklandcouncil.govt.nz/rubbish-recycling-collection-days/{propertyId}.html`
 

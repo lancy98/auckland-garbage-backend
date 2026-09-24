@@ -1,47 +1,71 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 import {HttpsError, onCall} from "firebase-functions/https";
 
-export const searchProperty = onCall(
-  {
-    enforceAppCheck: true,
-  },
-  async (request) => {
-    const query = request.data?.query as string | undefined;
+const COUNCIL_ORIGIN = "https://experience.aucklandcouncil.govt.nz";
+const SEARCH_PAGE =
+  `${COUNCIL_ORIGIN}/rubbish-recycling-collection-days.html`;
+const SESSION_TOKEN_PATTERN =
+  /initialToken.{0,10}?(eyJ[\w-]+\.[\w-]+\.[\w-]+)/;
 
-    if (!query || query.trim() === "") {
+export const searchProperty = onCall(
+  async (request) => {
+    const query = request.data?.query;
+
+    if (typeof query !== "string" || query.trim() === "") {
       throw new HttpsError("invalid-argument", "query is required");
     }
 
     try {
-      const encodedQuery = encodeURIComponent(`"${query}"`);
-      const url = "https://experience.aucklandcouncil.govt.nz/" +
-        `nextapi/property?query=${encodedQuery}&pageSize=20`;
+      const sessionResponse = await fetch(SEARCH_PAGE, {
+        headers: {"Cache-Control": "no-cache"},
+      });
 
-      const responseFromURL = await fetch(url);
-
-      if (!responseFromURL.ok) {
+      if (!sessionResponse.ok) {
         throw new HttpsError(
           "unavailable",
-          "Failed to fetch property data",
-          {status: responseFromURL.status},
+          "Failed to start Auckland Council property search",
+          {status: sessionResponse.status},
         );
       }
 
-      return await responseFromURL.json();
+      const page = await sessionResponse.text();
+      const token = page.match(SESSION_TOKEN_PATTERN)?.[1];
+
+      if (!token) {
+        throw new HttpsError(
+          "unavailable",
+          "Auckland Council search session is unavailable",
+        );
+      }
+
+      const url = new URL("/nextapi/property", COUNCIL_ORIGIN);
+      url.searchParams.set("query", query.trim());
+      url.searchParams.set("pageSize", "20");
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new HttpsError(
+          "unavailable",
+          "Failed to fetch property data",
+          {status: response.status},
+        );
+      }
+
+      return await response.json();
     } catch (error) {
       if (error instanceof HttpsError) {
         throw error;
       }
 
-      throw new HttpsError("internal", "Internal server error");
+      throw new HttpsError(
+        "unavailable",
+        "Unable to search Auckland properties",
+      );
     }
   },
 );
