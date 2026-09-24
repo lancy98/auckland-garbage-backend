@@ -2,7 +2,7 @@
 
 Firebase Cloud Functions backend for looking up Auckland Council property records and rubbish, recycling, and food scraps collection dates.
 
-The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. `getAucklandBinDates` enforces Firebase App Check; `searchProperty` does not.
+The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. Neither function requires Firebase App Check.
 
 ## Features
 
@@ -176,7 +176,7 @@ The root `firebase.json` runs linting and TypeScript compilation before deployme
 
 ## App Check
 
-App Check must be configured in the client application to call `getAucklandBinDates`, which is deployed with `enforceAppCheck: true`. `searchProperty` can be called without an App Check token.
+Neither callable function requires an App Check token.
 
 ## Error Handling
 

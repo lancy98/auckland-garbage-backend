@@ -165,13 +165,10 @@ export const parseAucklandBinDates = (html: string): BinDate[] => {
 };
 
 export const getAucklandBinDates = onCall(
-  {
-    enforceAppCheck: true,
-  },
   async (request) => {
-    const propertyId = request.data?.propertyId as string | undefined;
+    const propertyId = request.data?.propertyId;
 
-    if (!propertyId || !/^\d+$/.test(propertyId)) {
+    if (typeof propertyId !== "string" || !/^\d+$/.test(propertyId)) {
       throw new HttpsError("invalid-argument", "Valid propertyId is required");
     }
 
