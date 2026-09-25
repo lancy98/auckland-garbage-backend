@@ -1,4 +1,5 @@
 import {HttpsError, onCall} from "firebase-functions/https";
+import {requireAucklandGarbageCollectionApp} from "./appCheck";
 
 const COUNCIL_ORIGIN = "https://experience.aucklandcouncil.govt.nz";
 const SEARCH_PAGE =
@@ -7,7 +8,10 @@ const SESSION_TOKEN_PATTERN =
   /initialToken.{0,10}?(eyJ[\w-]+\.[\w-]+\.[\w-]+)/;
 
 export const searchProperty = onCall(
+  {enforceAppCheck: true},
   async (request) => {
+    requireAucklandGarbageCollectionApp(request.app?.appId);
+
     const query = request.data?.query;
 
     if (typeof query !== "string" || query.trim() === "") {

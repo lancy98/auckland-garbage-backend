@@ -1,8 +1,10 @@
 const assert = require("node:assert/strict");
 const {afterEach, test} = require("node:test");
 const {getAucklandBinDates} = require("../lib/getAucklandBinDates");
+const {AUCKLAND_GARBAGE_COLLECTION_APP_ID} = require("../lib/appCheck");
 
 const originalFetch = global.fetch;
+const authorizedApp = {appId: AUCKLAND_GARBAGE_COLLECTION_APP_ID};
 
 afterEach(() => {
   global.fetch = originalFetch;
@@ -25,6 +27,7 @@ test("returns collection dates from a serviced property page", async () => {
   };
 
   const result = await getAucklandBinDates.run({
+    app: authorizedApp,
     data: {propertyId: "12341294590"},
   });
 
@@ -52,6 +55,7 @@ test("returns no dates for a property with private collection", async () => {
   </body>`);
 
   const result = await getAucklandBinDates.run({
+    app: authorizedApp,
     data: {propertyId: "12347053714"},
   });
 
@@ -65,8 +69,21 @@ test("rejects property IDs that are not digit strings", async () => {
 
   for (const propertyId of [undefined, 12341294590, "12x", ""]) {
     await assert.rejects(
-      getAucklandBinDates.run({data: {propertyId}}),
+      getAucklandBinDates.run({app: authorizedApp, data: {propertyId}}),
       {code: "invalid-argument"},
+    );
+  }
+});
+
+test("rejects calls from another app or without App Check", async () => {
+  global.fetch = () => {
+    throw new Error("unexpected request");
+  };
+
+  for (const app of [undefined, {appId: "other-app"}]) {
+    await assert.rejects(
+      getAucklandBinDates.run({app, data: {propertyId: "12341294590"}}),
+      {code: "permission-denied"},
     );
   }
 });

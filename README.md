@@ -2,7 +2,7 @@
 
 Firebase Cloud Functions backend for looking up Auckland Council property records and rubbish, recycling, and food scraps collection dates.
 
-The project exposes HTTPS callable Firebase Functions intended for use by a Firebase client application. Neither function requires Firebase App Check.
+The project exposes HTTPS callable Firebase Functions intended for the Auckland Garbage Collection iOS app. Both functions require Firebase App Check and verify the calling Firebase App ID.
 
 ## Features
 
@@ -27,6 +27,7 @@ The project exposes HTTPS callable Firebase Functions intended for use by a Fire
 └── functions
     ├── package.json
     ├── src
+    │   ├── appCheck.ts
     │   ├── getAucklandBinDates.ts
     │   ├── index.ts
     │   └── searchProperty.ts
@@ -84,6 +85,19 @@ Collection `type` values are:
 - `rubbish`
 - `recycling`
 - `foodScraps`
+
+## App Check
+
+Both callable functions require a valid Firebase App Check token from the
+Auckland Garbage Collection iOS app. The allowed Firebase App ID is in
+`functions/src/appCheck.ts`; update it if the Firebase iOS app is replaced.
+
+Register the iOS app with the App Attest provider in Firebase Console >
+Security > App Check before deploying these functions. On the iOS simulator,
+the Debug build uses the App Check debug provider and the local Functions
+emulator. To test App Attest itself, run on a signed physical device against
+deployed functions. Register any debug token used against deployed functions
+in the Firebase console, and keep it out of source control.
 
 ## Requirements
 

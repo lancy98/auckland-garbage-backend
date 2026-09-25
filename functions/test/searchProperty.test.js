@@ -1,8 +1,10 @@
 const assert = require("node:assert/strict");
 const {afterEach, test} = require("node:test");
 const {searchProperty} = require("../lib/searchProperty");
+const {AUCKLAND_GARBAGE_COLLECTION_APP_ID} = require("../lib/appCheck");
 
 const originalFetch = global.fetch;
+const authorizedApp = {appId: AUCKLAND_GARBAGE_COLLECTION_APP_ID};
 const token = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.signature";
 
 afterEach(() => {
@@ -21,7 +23,10 @@ test("searches with the council page session token", async () => {
     return Response.json({items: [{id: "123", address: "1 Queen Street"}]});
   };
 
-  const result = await searchProperty.run({data: {query: " 1 Queen Street "}});
+  const result = await searchProperty.run({
+    app: authorizedApp,
+    data: {query: " 1 Queen Street "},
+  });
 
   assert.deepEqual(result, {
     items: [{id: "123", address: "1 Queen Street"}],
@@ -45,7 +50,7 @@ test("rejects invalid queries before contacting the council", async () => {
 
   for (const query of [undefined, 42, "   "]) {
     await assert.rejects(
-      searchProperty.run({data: {query}}),
+      searchProperty.run({app: authorizedApp, data: {query}}),
       {code: "invalid-argument"},
     );
   }
@@ -55,7 +60,7 @@ test("reports an unavailable session when the page has no token", async () => {
   global.fetch = async () => new Response("<html></html>");
 
   await assert.rejects(
-    searchProperty.run({data: {query: "Queen Street"}}),
+    searchProperty.run({app: authorizedApp, data: {query: "Queen Street"}}),
     {code: "unavailable"},
   );
 });
@@ -69,7 +74,20 @@ test("reports the council search failure with its status", async () => {
   };
 
   await assert.rejects(
-    searchProperty.run({data: {query: "Queen Street"}}),
+    searchProperty.run({app: authorizedApp, data: {query: "Queen Street"}}),
     {code: "unavailable", details: {status: 401}},
   );
+});
+
+test("rejects calls from another app or without App Check", async () => {
+  global.fetch = () => {
+    throw new Error("unexpected request");
+  };
+
+  for (const app of [undefined, {appId: "other-app"}]) {
+    await assert.rejects(
+      searchProperty.run({app, data: {query: "Queen Street"}}),
+      {code: "permission-denied"},
+    );
+  }
 });

@@ -8,6 +8,7 @@
  */
 
 import {HttpsError, onCall} from "firebase-functions/https";
+import {requireAucklandGarbageCollectionApp} from "./appCheck";
 import * as cheerio from "cheerio";
 
 type BinType = "rubbish" | "recycling" | "foodScraps";
@@ -165,7 +166,10 @@ export const parseAucklandBinDates = (html: string): BinDate[] => {
 };
 
 export const getAucklandBinDates = onCall(
+  {enforceAppCheck: true},
   async (request) => {
+    requireAucklandGarbageCollectionApp(request.app?.appId);
+
     const propertyId = request.data?.propertyId;
 
     if (typeof propertyId !== "string" || !/^\d+$/.test(propertyId)) {
