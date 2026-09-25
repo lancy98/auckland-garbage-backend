@@ -188,10 +188,6 @@ npm run logs
 
 The root `firebase.json` runs linting and TypeScript compilation before deployment.
 
-## App Check
-
-Neither callable function requires an App Check token.
-
 ## Error Handling
 
 The functions return Firebase `HttpsError` responses for invalid input and upstream service failures.

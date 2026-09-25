@@ -10,8 +10,13 @@ export const AUCKLAND_GARBAGE_COLLECTION_APP_ID =
 export function requireAucklandGarbageCollectionApp(
   appId: string | undefined,
 ): void {
+  // The Functions emulator accepts the simulator debug token without
+  // supplying its app ID. Its callable middleware still requires a token.
+  if (process.env.FUNCTIONS_EMULATOR === "true" && appId === undefined) {
+    return;
+  }
+
   if (appId !== AUCKLAND_GARBAGE_COLLECTION_APP_ID) {
-    console.warn("Rejected App Check app ID:", appId);
     throw new HttpsError("permission-denied", "App is not authorized");
   }
 }

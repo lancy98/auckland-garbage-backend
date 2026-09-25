@@ -91,3 +91,34 @@ test("rejects calls from another app or without App Check", async () => {
     );
   }
 });
+
+test("accepts an omitted app ID only in the Functions emulator", async () => {
+  const previousValue = process.env.FUNCTIONS_EMULATOR;
+  process.env.FUNCTIONS_EMULATOR = "true";
+  global.fetch = async (url) => {
+    if (String(url).endsWith(".html")) {
+      return new Response(`initialToken\\":\\"${token}\\"`);
+    }
+    return Response.json({items: []});
+  };
+
+  try {
+    await assert.doesNotReject(
+      searchProperty.run({
+        app: {appId: undefined}, data: {query: "Queen Street"},
+      }),
+    );
+    await assert.rejects(
+      searchProperty.run({
+        app: {appId: "other-app"}, data: {query: "Queen Street"},
+      }),
+      {code: "permission-denied"},
+    );
+  } finally {
+    if (previousValue === undefined) {
+      delete process.env.FUNCTIONS_EMULATOR;
+    } else {
+      process.env.FUNCTIONS_EMULATOR = previousValue;
+    }
+  }
+});
